@@ -1,78 +1,75 @@
-
-import { useState } from 'react';
+// Minimal App.jsx update to wire routing, lazy load pages, and use ServiceProvider.
+// If you prefer to keep existing App.jsx layout, merge these changes carefully.
+import { useState, Suspense, lazy } from 'react';
 import './App.css';
-import RoutesPage from './adapters/ui/RoutesPage';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { ServiceProvider } from './shared/context/ServiceProvider';
+
+// Lazy load page components
+const RoutesPage = lazy(() => import('./adapters/ui/RoutesPage'));  
+// const ComparePage = lazy(() => import('./adapters/ui/ComparePage'));
+// const BankingPage = lazy(() => import('./adapters/ui/BankingPage'));
+// const PoolingPage = lazy(() => import('./adapters/ui/PoolingPage'));
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedNav, setSelectedNav] = useState('Routes');
   const navItems = [
-    { name: 'Routes', icon: '' },
-    { name: 'Compare', icon: '' },
-    { name: 'Banking', icon: '' },
-    { name: 'Pooling', icon: '' },
+    { name: 'Routes', to: '/routes' },
+    { name: 'Compare', to: '/compare' },
+    { name: 'Banking', to: '/banking' },
+    { name: 'Pooling', to: '/pooling' },
   ];
 
-  // You can import and use usecases from core/usecases here as needed
-
   return (
-    <div className="flex bg-gray-100 h-screen">
+    <BrowserRouter>
+      {/* ServiceProvider will read REACT_APP_USE_MOCKS env var if provided; no code changes needed to toggle */}
+      <ServiceProvider>
+        <div className="flex bg-gray-100 h-screen">
+          {/* Sidebar */}
+          <div className={`fixed bg-white w-64 h-screen shadow ${isSidebarOpen ? 'translate-x-0' : '-translate-x-64'} lg:translate-x-0 lg:static`}> 
+            <div className="p-4 flex justify-between border-b">
+              <div className="text-xl font-bold">Logo</div>
+              <button className="lg:hidden" onClick={() => setIsSidebarOpen(false)}>X</button>
+            </div>
 
-    {/* Sidebar */}
-      <div className={`fixed bg-white w-64 h-screen shadow transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-64'} lg:translate-x-0 lg:static`}>
-        <div className='p-4 flex justify-between border-b'>
-          <div className='text-xl font-bold'>Logo</div>
-          <button className='lg:hidden' onClick={() => setIsSidebarOpen(false)}>X</button>
+            <nav className="p-4 space-y-2">
+              {navItems.map(item => (
+                <Link key={item.name} to={item.to} className="block p-2 hover:bg-gray-100 rounded">
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* main content */}
+          <main className="flex-1 lg:ml-64">
+            <header className="p-4 bg-white flex justify-between">
+              <button
+                className="p-2 text-xl font-bold hover:bg-gray-200 rounded-lg transition-colors lg:hidden"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              >
+                ☰
+              </button>
+              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <div className="bg-gray-300 w-10 h-10 rounded-full" />
+            </header>
+
+            <div>
+              <Suspense fallback={<div className="p-4">Loading...</div>}>
+                <Routes>
+                  <Route path="/" element={<RoutesPage />} />
+                  <Route path="/routes" element={<RoutesPage />} />
+                  <Route path="/compare" element={<div className="p-4">Compare (work in progress)</div>} />
+                  <Route path="/banking" element={<div className="p-4">Banking (work in progress)</div>} />
+                  <Route path="/pooling" element={<div className="p-4">Pooling (work in progress)</div>} />
+                </Routes>
+              </Suspense>
+            </div>
+          </main>
         </div>
-        {/* Navigation bar */}
-        <div className='p-4 space-y-2'>
-          {navItems.map(item => (
-            <button
-              key={item.name}
-              className={`flex w-full p-2 rounded-lg items-center gap-2 hover:bg-gray-100 transition-colors ${selectedNav === item.name ? 'bg-gray-200 font-semibold' : ''}`}
-              onClick={() => setSelectedNav(item.name)}
-            >
-              <span className='text-xl'>{item.icon}</span>
-              <span className='text-xl'>{item.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-
-
-    {/* main content */}
-    <main className='flex-1'>
-      <header className="p-4 bg-white flex justify-between">
-        <button
-          className="p-2 text-xl font-bold hover:bg-gray-200 rounded-lg transition-colors lg:hidden"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-        <h1 className='text-2xl font-bold'>{selectedNav}</h1>
-        <div className='bg-gray-300 w-10 h-10 rounded-full'></div>
-      </header>
-      <div className='p-4'>
-        {selectedNav === 'Routes' && <RoutesPage />}
-        {/* Add more conditional renders for other nav items as you create their pages */}
-      </div>
-    </main>
-  </div>
+      </ServiceProvider>
+    </BrowserRouter>
   );
 }
 
-export default App
+export default App;
